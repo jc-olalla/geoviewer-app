@@ -17,7 +17,7 @@ Clone the repository and install dependencies:
 git clone https://github.com/your-username/geoviewer-app.git
 cd geoviewer-app
 npm install
-
+```
 
 Start the local development server
 
