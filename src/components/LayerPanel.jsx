@@ -8,7 +8,7 @@ function LayerPanel() {
   const [activeLayers, setActiveLayers] = useState({})
 
   useEffect(() => {
-    fetch('http://localhost:8000/layers/')
+    fetch('http://localhost:8000/tenants/brandweer/layers/')
       .then(res => res.json())
       .then(setLayers)
       .catch(() => {}) // handle error if needed
