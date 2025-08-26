@@ -7,9 +7,9 @@ import GeoJSON from 'ol/format/GeoJSON'
  * Minimal working REST layer for Supabase RPC + bbox
  * Dev-only: hard-coded bbox and refresh token.
  */
-const SUPABASE_URL   = ''  // <- your project
-const ANON_KEY       = ''                   // <- fill in
-const REFRESH_TOKEN  = ''                        // <- fill in
+const SUPABASE_URL   = 'https://dctmgvivsthofjcmejsd.supabase.co'  // <- your project
+const ANON_KEY       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdG1ndml2c3Rob2ZqY21lanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5OTExNDksImV4cCI6MjA3MDU2NzE0OX0.YD_NNMkmvM3i-9HTuN4oqol3QZiMhrPlRq2g5CyTnf4' // <- fill in
+const REFRESH_TOKEN  = 'hgngfuwstelw'                               // <- fill in
 const RPC_NAME       = 'features_in_bbox_3857'
 
 // Hard-coded bbox in EPSG:3857 (from your cURL)
@@ -20,7 +20,7 @@ export default class RESTLayerHandler {
     this.map = map
     this.layer = null
 
-    // Assume GeoJSON is 4326; OL reprojects to map's 3857
+    // Server returns GeoJSON in EPSG:4326; OL reprojects to map's 3857
     this.format = new GeoJSON({
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
@@ -47,11 +47,9 @@ export default class RESTLayerHandler {
   }
 
   _toFeatureCollection(json) {
-    // Accept a FeatureCollection directly
     if (json && json.type === 'FeatureCollection' && Array.isArray(json.features)) {
       return json
     }
-    // Or an array of rows with a geometry-like field
     const rows = Array.isArray(json) ? json : []
     if (!rows.length) return { type: 'FeatureCollection', features: [] }
 
@@ -84,7 +82,7 @@ export default class RESTLayerHandler {
         apikey: ANON_KEY,
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        Prefer: 'params=single-object', // ensures named JSON params bind correctly
+        Prefer: 'params=single-object',
         Accept: 'application/json',
       },
       body: JSON.stringify(BBOX_3857),
@@ -107,6 +105,14 @@ export default class RESTLayerHandler {
     try {
       const fc = await this._fetchOnce()
       const features = this.format.readFeatures(fc)
+
+      // 🔑 Give each feature a stable id so selection/review works
+      features.forEach((feat) => {
+        // your data shows the PK in properties.id (fallback to fid if present)
+        const pk = feat.get('id') ?? feat.get('fid')
+        if (pk != null) feat.setId(String(pk)) // use String() to avoid bigint precision loss
+      })
+
       source.clear(true)
       source.addFeatures(features)
       console.log(`[REST] Loaded ${features.length} features`)

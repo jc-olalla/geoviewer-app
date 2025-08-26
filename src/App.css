@@ -1,3 +1,27 @@
 body {
   font-family: sans-serif;
 }
+
+/* minimal popup + table styles */
+.ol-popup {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 10px;
+  max-width: 360px;
+  overflow: hidden;
+}
+
+.ol-popup .ol-popup-close {
+  position: absolute;
+  top: 4px; right: 6px;
+  background: none; border: 0; cursor: pointer;
+}
+
+.attr-table { font: 13px/1.4 system-ui, sans-serif; border-collapse: collapse; width: 100%; }
+.attr-table th, .attr-table td { padding: 4px 0; border-bottom: 1px solid #f2f2f2; }
+.attr-table tr:last-child th, .attr-table tr:last-child td { border-bottom: 0; }
+.attr-table th { text-align: left; color: #555; white-space: nowrap; padding-right: 8px; }
+.attr-table td { color: #111; }
+
