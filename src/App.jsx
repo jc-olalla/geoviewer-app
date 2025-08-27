@@ -5,6 +5,7 @@ import MapContainer from './components/MapContainer'
 import BaseLayer from './components/BaseLayer'
 import LayerPanel from './components/LayerPanel'
 import ReviewTool from './custom/review/ReviewTool'
+import StreetViewPanel from './components/StreetViewPanel'
 import { MapContext } from './context/MapContext'
 
 // add:
@@ -32,6 +33,7 @@ function App() {
           <BaseLayer />
           <LayerPanel />
           <ReviewTool />
+          <StreetViewPanel />
         </MapContext.Provider>
       )}
     </div>
