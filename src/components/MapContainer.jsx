@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+// src/components/MapContainer.jsx
+import { useEffect, useRef } from 'react'
 import Map from 'ol/Map'
 import View from 'ol/View'
+import { restoreMapView, enableMapViewPersistence } from '../utils/persistView'
 
 function MapContainer({ onMapReady }) {
   const mapRef = useRef(null)
@@ -9,18 +11,24 @@ function MapContainer({ onMapReady }) {
     const map = new Map({
       target: mapRef.current,
       view: new View({
-        center: [521098, 6763769],
+        center: [521098, 6763769],  // default fallback; will be overridden by restoreMapView if saved/URL state exists
         zoom: 18,
         projection: 'EPSG:3857',
       }),
       layers: [],
     })
 
-    if (onMapReady) {
-      onMapReady(map)
-    }
+    // Restore last view (URL hash > localStorage)
+    restoreMapView(map)
+    // Start saving view on pan/zoom and before unload
+    const disablePersist = enableMapViewPersistence(map)
 
-    return () => map.setTarget(null)
+    onMapReady?.(map)
+
+    return () => {
+      disablePersist?.()
+      map.setTarget(null)
+    }
   }, [onMapReady])
 
   return (
@@ -38,5 +46,4 @@ function MapContainer({ onMapReady }) {
 }
 
 export default MapContainer
-
 

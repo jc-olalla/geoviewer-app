@@ -6,6 +6,24 @@ import { platformModifierKeyOnly, shiftKeyOnly, click } from 'ol/events/conditio
 import Style from 'ol/style/Style'
 import Stroke from 'ol/style/Stroke'
 
+// inject once; keeps repo lean (no extra css file)
+const ensureDragBoxStyle = () => {
+  if (document.getElementById('review-dragbox-style')) return
+  const style = document.createElement('style')
+  style.id = 'review-dragbox-style'
+  style.textContent = `
+    .review-dragbox{
+      border: 2px solid #2563eb;
+      background-color: rgba(37,99,235,.12);
+      box-sizing: border-box;
+      pointer-events: none;
+      position: absolute; /* just in case ol/ol.css isn't imported */
+    }
+  `
+  document.head.appendChild(style)
+}
+
+
 const selectedStroke = new Style({ stroke: new Stroke({ color: '#1d4ed8', width: 2 }) })          // blue
 const pendingStroke  = new Style({ stroke: new Stroke({ color: '#7c3aed', width: 2, lineDash: [4,4] }) }) // purple dashed
 
@@ -66,6 +84,7 @@ export default function useReview(map, { targetLayerTitle }) {
   const enableInteractions = () => {
     const layer = layerRef.current
     if (!map || !layer) return
+    ensureDragBoxStyle()
 
     // Select:
     // - plain click: single select (replace)
@@ -95,7 +114,7 @@ export default function useReview(map, { targetLayerTitle }) {
     selectRef.current = sel
 
     // DragBox: hold Shift OR Ctrl/Cmd and drag to add many (any direction)
-    const box = new DragBox({ condition: modKey })
+    const box = new DragBox({ condition: modKey, className: 'review-dragbox' })
     box.on('boxend', () => {
       const extent = box.getGeometry().getExtent()
       const src = layer.getSource?.()

@@ -21,6 +21,11 @@ const styleDefault = new Style({
   fill:   new Fill({ color: 'rgba(107,114,128,0.20)' }),
   stroke: new Stroke({ color: '#6b7280', width: 1 }),
 })
+const styleMisschien = new Style({
+  fill:   new Fill({ color: 'rgba(245,242,39,0.35)' }),
+  stroke: new Stroke({ color: '#ffff00', width: 1 }),
+})
+
 
 // dashed variants (used when review_status is null/empty)
 const styleJaDashed = new Style({
@@ -92,6 +97,7 @@ function LayerPanel() {
 
             if (v === 'ja')  return noReview ? styleJaDashed  : styleJa
             if (v === 'nee') return noReview ? styleNeeDashed : styleNee
+            if (v === 'misschien') return styleMisschien
             return noReview ? styleDefaultDashed : styleDefault
           })
         }
@@ -112,7 +118,7 @@ function LayerPanel() {
   }
 
   return (
-    <div style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'white', padding: '1rem', zIndex: 1000 }}>
+    <div style={{ position: 'absolute', top: '0rem', right: '0rem', background: 'white', padding: '0.5rem', zIndex: 1000 }}>
       <h3>Available Layers</h3>
       {layers.map(layer => {
         const isActive = !!activeLayers[layer.id]

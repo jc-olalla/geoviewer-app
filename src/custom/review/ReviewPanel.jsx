@@ -92,7 +92,7 @@ export default function ReviewPanel({
   )
 }
 
-const panelStyle = { position:'absolute', top:'1rem', right:'1rem', zIndex:1000, background:'#fff', border:'1px solid #e5e7eb', borderRadius:8, padding:12, width:260, boxShadow:'0 4px 16px rgba(0,0,0,.08)', font:'13px/1.3 system-ui, sans-serif' }
+const panelStyle = { position:'absolute', top:'10rem', right:'0rem', zIndex:1000, background:'#fff', border:'1px solid #e5e7eb', borderRadius:8, padding:12, width:205, boxShadow:'0 4px 16px rgba(0,0,0,.08)', font:'13px/1.3 system-ui, sans-serif' }
 const rowStyle = { display:'flex', justifyContent:'space-between', alignItems:'center' }
 const labelStyle = { display:'block', marginBottom:4, color:'#555', fontSize:12 }
 const inputStyle = { flex:1, font:'13px system-ui, sans-serif', padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, outline:'none' }

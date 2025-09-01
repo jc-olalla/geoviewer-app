@@ -1,8 +1,12 @@
 // custom/review/reviewApi.js
 import { SUPABASE_URL, ANON_KEY, REFRESH_TOKEN } from './config'
 
-// mint an access_token from a refresh_token (dev flow)
+// --- access token (dev flow) -------------------------------------------------
+let TOKEN = { value: null, exp: 0 }
 async function getAccessToken() {
+  const now = Date.now()
+  if (TOKEN.value && now < TOKEN.exp - 30_000) return TOKEN.value
+
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
     method: 'POST',
     headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
@@ -11,57 +15,65 @@ async function getAccessToken() {
   if (!res.ok) throw new Error(`AUTH ${res.status}: ${await res.text()}`)
   const json = await res.json()
   if (!json.access_token) throw new Error('No access_token in response')
-  return json.access_token
+
+  const ttl = (json.expires_in || 3600) * 1000
+  TOKEN = { value: json.access_token, exp: now + ttl }
+  return TOKEN.value
 }
 
 /**
- * Save a batch of edits.
- * batch := [{ id, prev_version, is_portiek, review_status }]
- * For now: one PATCH per row so we can include per-row version checks.
- * Later: replace with RPC for better performance and logging.
+ * Save a batch of edits via RPC:
+ *   calls public.update_building_review(p_id, p_is_portiek, p_reviewer, p_note)
+ *
+ * batch := [{ id, prev_version?, is_portiek, note? }]
+ * options := { reviewer }
+ *
+ * Returns: { ok, updated, rows, errors? }
+ *   rows[i] ~= {
+ *     out_fid, out_version, out_is_portiek, out_review_status,
+ *     out_reviewer, out_reviewed_at
+ *   }
  */
-export async function saveBatchPATCH(batch, { reviewer }) {
-  if (!batch?.length) return { ok: true, updated: 0 }
-  const token = await getAccessToken()
+export async function saveBatchRPC(batch, { reviewer }) {
+  if (!batch?.length) return { ok: true, updated: 0, rows: [] }
 
-  let updated = 0
+  const token = await getAccessToken()
+  const rows = []
   const errors = []
 
   for (const item of batch) {
-    const id = item.id
-    const prev = item.prev_version
     const body = {
-      is_portiek: item.is_portiek,
-      review_status: item.review_status,
-      reviewer,
-      reviewed_at: new Date().toISOString(),
-      // optionally bump version here if your table computes it via trigger; else omit
+      p_id: Number(item.id),
+      p_is_portiek: item.is_portiek ?? null,
+      p_reviewer: reviewer,
+      p_note: item.note ?? null,
     }
-    // prefer fid=eq.id if your PK column is fid; fall back to id if needed
-    const qs = prev != null
-      ? `fid=eq.${encodeURIComponent(id)}&version=eq.${encodeURIComponent(prev)}`
-      : `fid=eq.${encodeURIComponent(id)}`
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/buildings?${qs}`, {
-      method: 'PATCH',
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_building_review`, {
+      method: 'POST',
       headers: {
         apikey: ANON_KEY,
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        Prefer: 'return=representation',
+        Accept: 'application/json',
+        // Prefer: 'return=representation' is not needed for RPC that RETURNS TABLE
       },
       body: JSON.stringify(body),
     })
 
     if (res.ok) {
-      const rows = await res.json()
-      if (Array.isArray(rows) && rows.length) updated += rows.length
+      // RPC that RETURNS TABLE comes back as an array (usually with 1 row)
+      let out = null
+      try { out = await res.json() } catch { out = null }
+      const arr = Array.isArray(out) ? out : (out ? [out] : [])
+      if (arr.length) rows.push(...arr)
     } else {
-      const txt = await res.text()
-      errors.push({ id, status: res.status, error: txt })
+      errors.push({ id: item.id, status: res.status, error: await res.text() })
     }
   }
 
-  return errors.length ? { ok: false, updated, errors } : { ok: true, updated }
+  // Use the number of returned rows as the count of successful updates
+  const updated = rows.length
+  return errors.length ? { ok: false, updated, rows, errors } : { ok: true, updated, rows }
 }
 
