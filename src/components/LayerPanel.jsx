@@ -48,7 +48,7 @@ function LayerPanel() {
   const [zoom, setZoom] = useState(() => map?.getView()?.getZoom?.() ?? 0)
 
   useEffect(() => {
-    fetch('http://localhost:8000/tenants/brandweer/layers/')
+    fetch('https://geoviewer-api.onrender.com/tenants/brandweer_zhz/layers/')
       .then(res => res.json())
       .then(setLayers)
       .catch(() => {})
