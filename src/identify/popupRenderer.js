@@ -8,7 +8,7 @@ export default function makePopupRenderer(/* map not needed for fixed panel */) 
     const css = `
       .identify-panel {
         position: fixed;
-        left: 0px;
+        left: 2px;
         bottom: 5px;
         width: min(260px, 92vw);
         max-height: 55vh;
