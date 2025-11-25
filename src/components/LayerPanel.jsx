@@ -121,6 +121,22 @@ function LayerPanel() {
     }
   }
 
+  // 🔹 NEW: auto-activate layers whose metadata says `visible: true`
+  useEffect(() => {
+    if (!map || !layers.length) return
+
+    layers.forEach((layer) => {
+      const id = layer.id
+      if (!layer.visible) return          // only auto-toggle visible layers
+      if (activeLayers[id]) return        // already active
+
+      const needsZoom = typeof layer.min_zoom === 'number' ? layer.min_zoom : layer.minZoom
+      if (typeof needsZoom === 'number' && zoom < needsZoom) return // respect min_zoom
+
+      handleToggle(layer, true)
+    })
+  }, [map, layers, activeLayers, zoom])
+
   return (
     <div style={{ position: 'absolute', top: '0rem', right: '0rem', background: 'white', padding: '0.5rem', zIndex: 1000 }}>
       <h3>Available Layers</h3>
@@ -151,4 +167,3 @@ function LayerPanel() {
 }
 
 export default LayerPanel
-
