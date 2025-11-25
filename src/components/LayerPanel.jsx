@@ -10,20 +10,20 @@ import Stroke from 'ol/style/Stroke'
 
 // base styles
 const styleJa = new Style({
-  fill:   new Fill({ color: 'rgba(16,185,129,0.35)' }),
-  stroke: new Stroke({ color: '#10b981', width: 1 }),
+  fill:   new Fill({ color: 'rgba(0,0,0,05)' }), // rgba(16,185,129,0.35)
+  stroke: new Stroke({ color: '#10b981', width: 0 }),  // width: 1
 })
 const styleNee = new Style({
-  fill:   new Fill({ color: 'rgba(239,68,68,0.25)' }),
-  stroke: new Stroke({ color: '#ef4444', width: 1 }),
+  fill:   new Fill({ color: 'rgba(0,0,0,0)' }),  // rgba(239,68,68,0.25)
+  stroke: new Stroke({ color: '#ef4444', width: 0 }),  // width: 1
 })
 const styleDefault = new Style({
-  fill:   new Fill({ color: 'rgba(107,114,128,0.20)' }),
-  stroke: new Stroke({ color: '#6b7280', width: 1 }),
+  fill:   new Fill({ color: 'rgba(0,0,0,0)' }),  // rgba(107,114,128,0.20)
+  stroke: new Stroke({ color: '#6b7280', width: 0 }),  // width: 1
 })
 const styleMisschien = new Style({
-  fill:   new Fill({ color: 'rgba(245,242,39,0.35)' }),
-  stroke: new Stroke({ color: '#ffff00', width: 1 }),
+  fill:   new Fill({ color: 'rgba(0,0,0,0)' }),  // rgba(245,242,39,0.35)
+  stroke: new Stroke({ color: '#ffff00', width: 0 }),  // width: 1
 })
 
 
