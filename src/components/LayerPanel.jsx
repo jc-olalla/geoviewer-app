@@ -9,27 +9,24 @@ import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 
 // helper: create a diagonal hatch fill pattern in a given color
-function createHatchFill(color) {
+// helper: create a diagonal black hatch fill pattern
+function createHatchFill() {
   const canvas = document.createElement('canvas')
   canvas.width = 8
   canvas.height = 8
   const ctx = canvas.getContext('2d')
 
-  // transparent background, colored diagonal line
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.strokeStyle = color
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)' // black hatch lines (slightly transparent)
   ctx.lineWidth = 1
+
   ctx.beginPath()
   ctx.moveTo(0, 8)
   ctx.lineTo(8, 0)
   ctx.stroke()
 
   const pattern = ctx.createPattern(canvas, 'repeat')
-
-  // Fallback: if pattern creation fails for some reason, use a solid color
-  if (!pattern) {
-    return new Fill({ color })
-  }
 
   return new Fill({ color: pattern })
 }
@@ -50,9 +47,9 @@ const redStyle = new Style({ fill: redFill, stroke: redStroke })
 const yellowStyle = new Style({ fill: yellowFill, stroke: yellowStroke })
 
 // HATCHED FILLS (used when review_status = 'gedaan')
-const greenHatchFill = createHatchFill('#16a34a')
-const redHatchFill = createHatchFill('#ef4444')
-const yellowHatchFill = createHatchFill('#eab308')
+const greenHatchFill = createHatchFill()
+const redHatchFill = createHatchFill()
+const yellowHatchFill = createHatchFill()
 
 // HATCHED STYLES: hatched interior + solid outline
 const greenHatchedStyle = new Style({ fill: greenHatchFill, stroke: greenStroke })
