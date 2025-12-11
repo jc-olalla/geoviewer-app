@@ -8,13 +8,14 @@ import Style from 'ol/style/Style'
 import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 
-// helper: create a simple diagonal hatch pattern fill in a given color
+// small helper to make a diagonal hatch fill
 function createHatchFill(color) {
   const canvas = document.createElement('canvas')
   canvas.width = 8
   canvas.height = 8
   const ctx = canvas.getContext('2d')
 
+  // transparent background, colored diagonal line
   ctx.strokeStyle = color
   ctx.lineWidth = 1
   ctx.beginPath()
@@ -26,27 +27,27 @@ function createHatchFill(color) {
   return new Fill({ color: pattern })
 }
 
-// base fills
-const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })   // isPortiek = Ja
-const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })     // isPortiek = Nee
-const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })   // isPortiek = misschien
+// BASE FILLS
+const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })   // Ja
+const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })    // Nee
+const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })  // misschien
 
-// hatched fills (same color but with diagonal hatch)
-const greenHatchFill = createHatchFill('#16a34a')
-const redHatchFill = createHatchFill('#ef4444')
-const yellowHatchFill = createHatchFill('#eab308')
-
-// stroke is just a solid line in same-ish color
+// STROKES
 const greenStroke = new Stroke({ color: '#16a34a', width: 1 })
 const redStroke = new Stroke({ color: '#ef4444', width: 1 })
 const yellowStroke = new Stroke({ color: '#eab308', width: 1 })
 
-// styles: plain colors
+// PLAIN STYLES
 const greenStyle = new Style({ fill: greenFill, stroke: greenStroke })
 const redStyle = new Style({ fill: redFill, stroke: redStroke })
 const yellowStyle = new Style({ fill: yellowFill, stroke: yellowStroke })
 
-// styles: hatched (status = gedaan)
+// HATCHED FILLS
+const greenHatchFill = createHatchFill('#16a34a')
+const redHatchFill = createHatchFill('#ef4444')
+const yellowHatchFill = createHatchFill('#eab308')
+
+// HATCHED STYLES (status = gedaan)
 const greenHatchedStyle = new Style({ fill: greenHatchFill, stroke: greenStroke })
 const redHatchedStyle = new Style({ fill: redHatchFill, stroke: redStroke })
 const yellowHatchedStyle = new Style({ fill: yellowHatchFill, stroke: yellowStroke })
@@ -101,30 +102,49 @@ function LayerPanel() {
         // Style only for REST/supabase_rest; remove guard to apply to other vector types too
         if (handlerType === 'rest' || handlerType === 'supabase_rest') {
           handler.layer.setStyle((feature) => {
-            const isPortiekRaw = feature.get('isPortiek')
-            const statusRaw = feature.get('status')
+            // ✅ CORRECT FIELD NAMES
+            const statusRaw = feature.get('review_status')
+            const isPortiekRaw = feature.get('is_portiek')
 
-            const isPortiekStr = String(isPortiekRaw ?? '').trim().toLowerCase()
             const statusStr = String(statusRaw ?? '').trim().toLowerCase()
             const isDone = statusStr === 'gedaan'
 
-            // isPortiek = Ja
-            if (isPortiekStr === 'ja') {
+            const isPortiekStr = String(isPortiekRaw ?? '').trim().toLowerCase()
+
+            // normalize is_portiek to one of: ja / nee / misschien
+            let cat = null
+            if (
+              isPortiekRaw === true ||
+              ['ja', 'true', '1', 'y'].includes(isPortiekStr)
+            ) {
+              cat = 'ja'
+            } else if (
+              isPortiekRaw === false ||
+              ['nee', 'false', '0', 'n'].includes(isPortiekStr)
+            ) {
+              cat = 'nee'
+            } else if (['misschien', 'maybe', 'onzeker'].includes(isPortiekStr)) {
+              cat = 'misschien'
+            }
+
+            // apply your rules:
+            // isPortiek=Ja  -> green / green hatched
+            if (cat === 'ja') {
               return isDone ? greenHatchedStyle : greenStyle
             }
 
-            // isPortiek = Nee
-            if (isPortiekStr === 'nee') {
+            // isPortiek=Nee -> red / red hatched
+            if (cat === 'nee') {
               return isDone ? redHatchedStyle : redStyle
             }
 
-            // isPortiek = misschien
-            if (isPortiekStr === 'misschien') {
+            // isPortiek=misschien -> yellow / yellow hatched
+            if (cat === 'misschien') {
               return isDone ? yellowHatchedStyle : yellowStyle
             }
 
-            // if value is something else / missing -> don't draw feature (or pick a default)
-            return null
+            // fallback so buildings never disappear completely
+            return yellowStyle
           })
         }
       }
@@ -164,7 +184,7 @@ function LayerPanel() {
       <h3>Available Layers</h3>
       {layers.map(layer => {
         const isActive = !!activeLayers[layer.id]
-        const needsZoom = typeof layer.min_zoom === 'number' ? layer.min_zoom : layer.minZoom
+        const needsZoom = typeof needsZoom === 'number' ? layer.min_zoom : layer.minZoom
         const disabled = typeof needsZoom === 'number' ? zoom < needsZoom : false
         const title = layer.title || layer.name
         const tooltip = disabled ? `Zoom in to ${needsZoom}+ to activate` : ''
