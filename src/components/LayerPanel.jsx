@@ -32,9 +32,9 @@ function createHatchFill() {
 }
 
 // BASE SOLID FILLS
-const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })   // ja
-const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })    // nee
-const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })  // misschien
+const greenFill = new Fill({ color: 'rgba(16, 185, 129, 1)' })   // ja
+const redFill = new Fill({ color: 'rgba(248, 113, 113, 1)' })    // nee
+const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 1)' })  // misschien
 
 // STROKES (solid outlines)
 const greenStroke = new Stroke({ color: '#16a34a', width: 1 })
