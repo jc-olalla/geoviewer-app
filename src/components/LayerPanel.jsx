@@ -8,49 +8,60 @@ import Style from 'ol/style/Style'
 import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 
-// small helper to make a diagonal hatch fill
-function createHatchFill(color) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 8
-  canvas.height = 8
-  const ctx = canvas.getContext('2d')
+// styles for the new behavior
+// is_portiek = 'ja'        -> green
+// is_portiek = 'ja' & review_status='gedaan' -> green (hatched / dashed outline)
+// is_portiek = 'nee'       -> red
+// is_portiek = 'nee' & review_status='gedaan' -> red (hatched / dashed outline)
+// is_portiek = 'misschien' -> yellow
+// is_portiek = 'misschien' & review_status='gedaan' -> yellow (hatched / dashed outline)
 
-  // transparent background, colored diagonal line
-  ctx.strokeStyle = color
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(0, 8)
-  ctx.lineTo(8, 0)
-  ctx.stroke()
+const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })
+const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })
+const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })
 
-  const pattern = ctx.createPattern(canvas, 'repeat')
-  return new Fill({ color: pattern })
-}
-
-// BASE FILLS
-const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })   // Ja
-const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })    // Nee
-const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })  // misschien
-
-// STROKES
 const greenStroke = new Stroke({ color: '#16a34a', width: 1 })
 const redStroke = new Stroke({ color: '#ef4444', width: 1 })
 const yellowStroke = new Stroke({ color: '#eab308', width: 1 })
 
-// PLAIN STYLES
+// plain color styles
 const greenStyle = new Style({ fill: greenFill, stroke: greenStroke })
 const redStyle = new Style({ fill: redFill, stroke: redStroke })
 const yellowStyle = new Style({ fill: yellowFill, stroke: yellowStroke })
 
-// HATCHED FILLS
-const greenHatchFill = createHatchFill('#16a34a')
-const redHatchFill = createHatchFill('#ef4444')
-const yellowHatchFill = createHatchFill('#eab308')
+// "hatched" = same fill, but dashed border
+const greenHatchedStyle = new Style({
+  fill: greenFill,
+  stroke: new Stroke({
+    color: '#16a34a',
+    width: 2,
+    lineDash: [4, 4],
+  }),
+})
 
-// HATCHED STYLES (status = gedaan)
-const greenHatchedStyle = new Style({ fill: greenHatchFill, stroke: greenStroke })
-const redHatchedStyle = new Style({ fill: redHatchFill, stroke: redStroke })
-const yellowHatchedStyle = new Style({ fill: yellowHatchFill, stroke: yellowStroke })
+const redHatchedStyle = new Style({
+  fill: redFill,
+  stroke: new Stroke({
+    color: '#ef4444',
+    width: 2,
+    lineDash: [4, 4],
+  }),
+})
+
+const yellowHatchedStyle = new Style({
+  fill: yellowFill,
+  stroke: new Stroke({
+    color: '#eab308',
+    width: 2,
+    lineDash: [4, 4],
+  }),
+})
+
+// optional fallback style if is_portiek is unknown
+const fallbackStyle = new Style({
+  fill: new Fill({ color: 'rgba(148, 163, 184, 0.4)' }), // slate-ish
+  stroke: new Stroke({ color: '#64748b', width: 1 }),
+})
 
 function LayerPanel() {
   const map = useContext(MapContext)
@@ -102,16 +113,16 @@ function LayerPanel() {
         // Style only for REST/supabase_rest; remove guard to apply to other vector types too
         if (handlerType === 'rest' || handlerType === 'supabase_rest') {
           handler.layer.setStyle((feature) => {
-            // ✅ CORRECT FIELD NAMES
-            const statusRaw = feature.get('review_status')
+            // use the original field names
+            const reviewRaw = feature.get('review_status')
             const isPortiekRaw = feature.get('is_portiek')
 
-            const statusStr = String(statusRaw ?? '').trim().toLowerCase()
-            const isDone = statusStr === 'gedaan'
+            const reviewStr = String(reviewRaw ?? '').trim().toLowerCase()
+            const isDone = reviewStr === 'gedaan'
 
             const isPortiekStr = String(isPortiekRaw ?? '').trim().toLowerCase()
 
-            // normalize is_portiek to one of: ja / nee / misschien
+            // normalize is_portiek into one of: 'ja' | 'nee' | 'misschien'
             let cat = null
             if (
               isPortiekRaw === true ||
@@ -123,28 +134,27 @@ function LayerPanel() {
               ['nee', 'false', '0', 'n'].includes(isPortiekStr)
             ) {
               cat = 'nee'
-            } else if (['misschien', 'maybe', 'onzeker'].includes(isPortiekStr)) {
+            } else if (['misschien'].includes(isPortiekStr)) {
               cat = 'misschien'
             }
 
-            // apply your rules:
-            // isPortiek=Ja  -> green / green hatched
+            // isPortiek=Ja  >> green / green hatched
             if (cat === 'ja') {
               return isDone ? greenHatchedStyle : greenStyle
             }
 
-            // isPortiek=Nee -> red / red hatched
+            // isPortiek=Nee >> red / red hatched
             if (cat === 'nee') {
               return isDone ? redHatchedStyle : redStyle
             }
 
-            // isPortiek=misschien -> yellow / yellow hatched
+            // isPortiek=misschien >> yellow / yellow hatched
             if (cat === 'misschien') {
               return isDone ? yellowHatchedStyle : yellowStyle
             }
 
-            // fallback so buildings never disappear completely
-            return yellowStyle
+            // fallback so buildings still show if value is unknown/missing
+            return fallbackStyle
           })
         }
       }
@@ -184,7 +194,7 @@ function LayerPanel() {
       <h3>Available Layers</h3>
       {layers.map(layer => {
         const isActive = !!activeLayers[layer.id]
-        const needsZoom = typeof needsZoom === 'number' ? layer.min_zoom : layer.minZoom
+        const needsZoom = typeof layer.min_zoom === 'number' ? layer.min_zoom : layer.minZoom
         const disabled = typeof needsZoom === 'number' ? zoom < needsZoom : false
         const title = layer.title || layer.name
         const tooltip = disabled ? `Zoom in to ${needsZoom}+ to activate` : ''
