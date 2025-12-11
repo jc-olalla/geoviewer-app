@@ -8,7 +8,6 @@ import Style from 'ol/style/Style'
 import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 
-// helper: create a diagonal hatch fill pattern in a given color
 // helper: create a diagonal black hatch fill pattern
 function createHatchFill() {
   const canvas = document.createElement('canvas')
@@ -26,9 +25,10 @@ function createHatchFill() {
   ctx.lineTo(8, 0)
   ctx.stroke()
 
-  const pattern = ctx.createPattern(canvas, 'repeat')
+  const patternFill = ctx.createPattern(canvas, 'repeat')
 
-  return new Fill({ color: pattern })
+  // patternFill is used inside a Fill; if something goes wrong, fallback to semi-black
+  return new Fill({ color: patternFill || 'rgba(0,0,0,0.3)' })
 }
 
 // BASE SOLID FILLS
@@ -41,20 +41,16 @@ const greenStroke = new Stroke({ color: '#16a34a', width: 1 })
 const redStroke = new Stroke({ color: '#ef4444', width: 1 })
 const yellowStroke = new Stroke({ color: '#eab308', width: 1 })
 
-// PLAIN STYLES (no hatch)
+// PLAIN STYLES (solid color, no hatch)
 const greenStyle = new Style({ fill: greenFill, stroke: greenStroke })
 const redStyle = new Style({ fill: redFill, stroke: redStroke })
 const yellowStyle = new Style({ fill: yellowFill, stroke: yellowStroke })
 
-// HATCHED FILLS (used when review_status = 'gedaan')
-const greenHatchFill = createHatchFill()
-const redHatchFill = createHatchFill()
-const yellowHatchFill = createHatchFill()
-
-// HATCHED STYLES: hatched interior + solid outline
-const greenHatchedStyle = new Style({ fill: greenHatchFill, stroke: greenStroke })
-const redHatchedStyle = new Style({ fill: redHatchFill, stroke: redStroke })
-const yellowHatchedStyle = new Style({ fill: yellowHatchFill, stroke: yellowStroke })
+// SINGLE HATCH OVERLAY STYLE: transparent fill with black hatch pattern
+const hatchOverlayStyle = new Style({
+  fill: createHatchFill(), // will draw only the black diagonal lines
+  // no stroke here – we keep the colored stroke from green/red/yellow styles
+})
 
 // fallback style if is_portiek is unknown
 const fallbackStyle = new Style({
@@ -136,23 +132,31 @@ function LayerPanel() {
               cat = 'misschien'
             }
 
-            // isPortiek=Ja  >> green / green hatched
+            // isPortiek=Ja  >> green / green + black hatch
             if (cat === 'ja') {
-              return isDone ? greenHatchedStyle : greenStyle
+              return isDone
+                ? [greenStyle, hatchOverlayStyle] // solid green + hatch
+                : greenStyle
             }
 
-            // isPortiek=Nee >> red / red hatched
+            // isPortiek=Nee >> red / red + black hatch
             if (cat === 'nee') {
-              return isDone ? redHatchedStyle : redStyle
+              return isDone
+                ? [redStyle, hatchOverlayStyle]   // solid red + hatch
+                : redStyle
             }
 
-            // isPortiek=misschien >> yellow / yellow hatched
+            // isPortiek=misschien >> yellow / yellow + black hatch
             if (cat === 'misschien') {
-              return isDone ? yellowHatchedStyle : yellowStyle
+              return isDone
+                ? [yellowStyle, hatchOverlayStyle] // solid yellow + hatch
+                : yellowStyle
             }
 
             // fallback so buildings still show if value is unknown/missing
-            return fallbackStyle
+            return isDone
+              ? [fallbackStyle, hatchOverlayStyle]
+              : fallbackStyle
           })
         }
       }
