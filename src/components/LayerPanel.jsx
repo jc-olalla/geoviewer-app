@@ -8,19 +8,48 @@ import Style from 'ol/style/Style'
 import Fill from 'ol/style/Fill'
 import Stroke from 'ol/style/Stroke'
 
-// styles for the new behavior
-// - review_status is null/empty  -> orangeStyle
-// - review_status is "gedaan" AND is_portiek=true -> greenStyle
-// - all other cases -> not rendered (style function returns null)
-const orangeStyle = new Style({
-  fill: new Fill({ color: 'rgba(249, 115, 22, 0.5)' }), // orange-ish
-  stroke: new Stroke({ color: '#f97316', width: 1 }),
-})
+// helper: create a simple diagonal hatch pattern fill in a given color
+function createHatchFill(color) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 8
+  canvas.height = 8
+  const ctx = canvas.getContext('2d')
 
-const greenStyle = new Style({
-  fill: new Fill({ color: 'rgba(16, 185, 129, 0.5)' }), // green-ish
-  stroke: new Stroke({ color: '#10b981', width: 1 }),
-})
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 8)
+  ctx.lineTo(8, 0)
+  ctx.stroke()
+
+  const pattern = ctx.createPattern(canvas, 'repeat')
+  return new Fill({ color: pattern })
+}
+
+// base fills
+const greenFill = new Fill({ color: 'rgba(16, 185, 129, 0.5)' })   // isPortiek = Ja
+const redFill = new Fill({ color: 'rgba(248, 113, 113, 0.5)' })     // isPortiek = Nee
+const yellowFill = new Fill({ color: 'rgba(250, 204, 21, 0.5)' })   // isPortiek = misschien
+
+// hatched fills (same color but with diagonal hatch)
+const greenHatchFill = createHatchFill('#16a34a')
+const redHatchFill = createHatchFill('#ef4444')
+const yellowHatchFill = createHatchFill('#eab308')
+
+// stroke is just a solid line in same-ish color
+const greenStroke = new Stroke({ color: '#16a34a', width: 1 })
+const redStroke = new Stroke({ color: '#ef4444', width: 1 })
+const yellowStroke = new Stroke({ color: '#eab308', width: 1 })
+
+// styles: plain colors
+const greenStyle = new Style({ fill: greenFill, stroke: greenStroke })
+const redStyle = new Style({ fill: redFill, stroke: redStroke })
+const yellowStyle = new Style({ fill: yellowFill, stroke: yellowStroke })
+
+// styles: hatched (status = gedaan)
+const greenHatchedStyle = new Style({ fill: greenHatchFill, stroke: greenStroke })
+const redHatchedStyle = new Style({ fill: redHatchFill, stroke: redStroke })
+const yellowHatchedStyle = new Style({ fill: yellowHatchFill, stroke: yellowStroke })
 
 function LayerPanel() {
   const map = useContext(MapContext)
@@ -72,29 +101,29 @@ function LayerPanel() {
         // Style only for REST/supabase_rest; remove guard to apply to other vector types too
         if (handlerType === 'rest' || handlerType === 'supabase_rest') {
           handler.layer.setStyle((feature) => {
-            const review = feature.get('review_status')
-            const isPortiekRaw = feature.get('is_portiek')
+            const isPortiekRaw = feature.get('isPortiek')
+            const statusRaw = feature.get('status')
 
-            // normalize is_portiek to handle true, "ja", "true", etc.
-            const isPortiek =
-              isPortiekRaw === true ||
-              String(isPortiekRaw ?? '').trim().toLowerCase() === 'ja' ||
-              String(isPortiekRaw ?? '').trim().toLowerCase() === 'true'
+            const isPortiekStr = String(isPortiekRaw ?? '').trim().toLowerCase()
+            const statusStr = String(statusRaw ?? '').trim().toLowerCase()
+            const isDone = statusStr === 'gedaan'
 
-            const reviewStr = review == null ? '' : String(review).trim().toLowerCase()
-            const noReview = review == null || reviewStr === ''
-
-            // 1) review_status is null/empty -> orange polygons
-            if (noReview) {
-              return orangeStyle
+            // isPortiek = Ja
+            if (isPortiekStr === 'ja') {
+              return isDone ? greenHatchedStyle : greenStyle
             }
 
-            // 2) review_status is "gedaan" and is_portiek=true -> green polygons
-            if (reviewStr === 'gedaan' && isPortiek) {
-              return greenStyle
+            // isPortiek = Nee
+            if (isPortiekStr === 'nee') {
+              return isDone ? redHatchedStyle : redStyle
             }
 
-            // 3) all other cases: don't show the feature
+            // isPortiek = misschien
+            if (isPortiekStr === 'misschien') {
+              return isDone ? yellowHatchedStyle : yellowStyle
+            }
+
+            // if value is something else / missing -> don't draw feature (or pick a default)
             return null
           })
         }
