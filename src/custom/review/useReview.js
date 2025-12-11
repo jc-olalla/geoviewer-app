@@ -95,8 +95,6 @@ export default function useReview(map, { targetLayerTitle }) {
       toggleCondition: modKey,
       multi: true,
       hitTolerance: 5,
-      // NEW: prevent selecting features that are already reviewed
-      filter: (feature, l) => feature.get('review_status') !== 'gedaan',
     })
 
     // Keep our selectedIds in sync with the Select interaction's collection
@@ -134,9 +132,6 @@ export default function useReview(map, { targetLayerTitle }) {
       src.forEachFeatureInExtent(extent, (f) => {
         // Optional: ensure geometry truly intersects the box
         // if (!f.getGeometry()?.intersectsExtent(extent)) return
-
-        // NEW: skip already reviewed features in drag selection
-        if (f.get('review_status') === 'gedaan') return
 
         const id = f.getId?.() ?? f.get('id') ?? f.get('fid')
         if (id != null && !have.has(id)) {
